@@ -190,7 +190,7 @@ class NodeParse():
             uuid = proxy.get('id')
             server = proxy.get('add')
             port = int(proxy.get('port'))
-            aid = int(proxy.get('aid'))
+            aid = 0 if proxy.get('port') == "" else int(proxy.get('aid'))
             cipher = proxy.get('scy') if proxy.get('scy') else 'auto'
             network = proxy.get('net')
             tls = proxy.get('tls')
