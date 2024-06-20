@@ -11,8 +11,10 @@ def create_app():
     app = Flask(__name__)
     app.register_blueprint(blueprint=blue)
     path = os.path.dirname(os.path.abspath(__file__))
-    db_path = path + '/db/sub.db'
-    db_url = 'sqlite:///' + db_path
+    db_path = path + '/db/'
+    if not os.path.exists(db_path):
+        os.makedirs(db_path)
+    db_url = 'sqlite:///' + db_path + 'sub.db'
     app.config['SQLALCHEMY_DATABASE_URI'] = db_url
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config["JWT_SECRET_KEY"] = "sub"
