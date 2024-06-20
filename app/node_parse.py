@@ -181,7 +181,7 @@ def clash_encode(subs):  # clash编码
         else:
             clash()
     # 将 Clash 配置转为 YAML 格式
-    with open(path + '/db/clash.yaml', 'r') as file:
+    with open(path + '/db/clash.yaml', 'r', encoding="UTF-8") as file:
         data = yaml.safe_load(file)
         data['proxies'] = clash_config['proxies']
         proxy_groups = data.get('proxy-groups')
@@ -536,6 +536,8 @@ class NodeParse():
             proxy['sni'] = query.get('sni')
         if query.get('flow'):
             proxy['flow'] = query.get('flow')
+        if query.get('alpn'):
+            proxy['alpn'] = query.get('alpn').split(",")
         if query.get('type'):
             if query.get('type') == 'ws':
                 proxy['network'] = query.get('type')
@@ -545,11 +547,19 @@ class NodeParse():
                 host = query.get('host')
                 if host:
                     proxy['ws-opts']['headers'] = {'Host': host}
+            if query.get('type') == 'grpc':
+                proxy['network'] = query.get('type')
         if query.get('cert'):
             if query.get('cert').lower() == 'true':
                 proxy['skip-cert-verify'] = True
             else:
                 proxy['skip-cert-verify'] = False
+        if query.get('serviceName'):
+            #  grpc-opts:
+            #       grpc-service-name: "example"
+            proxy['grpc-opts'] = {
+                'grpc-service-name': query.get('serviceName')
+            }
         return proxy
 
     def hysteria(self):
