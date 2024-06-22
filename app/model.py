@@ -7,6 +7,8 @@ from .exts import db
 # flask db init  初始化
 # flask db migrate   数据迁移
 # flask db upgrade   改进更新
+
+
 class User(db.Model):  # 用户
     __tablename__ = 'user'
     id = db.Column(db.Integer, primary_key=True, comment="主键ID")
@@ -36,6 +38,22 @@ class Config(db.Model):  # 订阅管理
     id = db.Column(db.Integer, primary_key=True, comment="主键ID")
     key = db.Column(db.Text, unique=False)
     value = db.Column(db.Text, unique=False)
+
+
+# 订阅记录 记录订阅id 访问人ip 访问时间 访问人IP实际地址
+class SubLog(db.Model):
+    __tablename__ = 'sub_log'
+    id = db.Column(db.Integer, primary_key=True, comment="主键ID")
+    target = db.Column(db.String(40), unique=False)  # 订阅名称
+    name = db.Column(db.String(40), unique=False)  # 订阅名称
+    ip = db.Column(db.String(40), unique=False)  # ip
+    time = db.Column(db.Text, unique=False)  # 时间
+    address = db.Column(db.Text, unique=False)  # ip地址
+    status = db.Column(db.Text, unique=False)  # 状态
+    error = db.Column(db.Text, unique=False)  # 错误信息
+
+    def __repr__(self):
+        return '<sub_log %r>' % self.name
 
 
 def create_db():
@@ -96,3 +114,10 @@ def init_login_log():
         print("成功清空登录日志表")
     except Exception as e:
         handle_error(e)
+
+
+def session_commie():
+    try:
+        db.session.commit()
+    except Exception as e:
+        print(str(e))

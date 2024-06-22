@@ -1,6 +1,5 @@
 import base64
 import datetime
-import json
 import re
 import urllib.parse
 
@@ -9,6 +8,7 @@ import yaml
 from flask import Blueprint, request
 
 from .model import *
+from .utils import get_address
 
 blue = Blueprint('blue', __name__)
 path = os.path.dirname(os.path.abspath(__file__))
@@ -40,27 +40,18 @@ def get_country_emoji(hostname):
 
 def save_ip_address():  # 获取ip地址
     ip_address = request.environ.get('HTTP_X_REAL_IP', request.remote_addr)
-    params = {
-        'ip': ip_address,
-        'json': 'true'
-    }
-    res = requests.get('https://whois.pconline.com.cn/ipJson.jsp', params=params)
+    address = get_address(ip_address)
     # print(res.url)
-    if res.status_code == 200:
-        res_text = res.text
-        if res_text:
-            js = json.loads(res_text)
-            timer = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
-            address = js.get('addr')
-            login = Login(ip=ip_address, address=address, time=timer)
-            try:
-                db.session.add(login)
-                db.session.commit()
-            except Exception as e:
-                db.session.rollback()
-                db.session.flush()
-                print('错误信息:' + str(e))
-            # print(res_text,type(js))
+    timer = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
+    login = Login(ip=ip_address, address=address, time=timer)
+    try:
+        db.session.add(login)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        db.session.flush()
+        print('错误信息:' + str(e))
+        # print(res_text,type(js))
     # print(res.status_code)
 
 

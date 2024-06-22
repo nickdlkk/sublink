@@ -4,6 +4,7 @@ from flask import jsonify, render_template, send_file, make_response
 from flask_jwt_extended import jwt_required, get_jwt_identity, create_access_token, create_refresh_token
 
 from .node_parse import *
+from .utils import get_address
 
 blue = Blueprint('blue', __name__)
 path = os.path.dirname(os.path.abspath(__file__))
@@ -12,50 +13,72 @@ subname_list = ['vless', 'vmess', 'ss', 'ssr', 'trojan', 'hysteria', 'hy2', 'hys
 
 @blue.route('/sub/<string:target>/<path:name>', methods=['GET'])  # 订阅地址
 def get_sub_url(target, name):
+    ip_address = request.environ.get('HTTP_X_REAL_IP', request.remote_addr)
+    address = get_address(ip_address)
+    timer = datetime.datetime.now().strftime('%Y-%m-%d %H:%M')
+    sub_log = SubLog(ip=ip_address, target=target, name=name, address=address, time=timer)
+    try:
+        db.session.add(sub_log)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        db.session.flush()
+        print('错误信息:' + str(e))
     if request.method == 'GET':
         name = decode_base64_if_emoji(name)
         subs = Sub.query.filter_by(name=name).all()
         # print(target, subs)
         if not subs:
+            sub_log.status = 'error'
+            sub_log.error = '订阅不存在'
+            session_commie()
             return jsonify({
                 'code': 400,
                 'msg': '订阅不存在'
             })
+        try:
+            if target == 'clash':
+                data = clash_encode(subs)
+                response = make_response(
+                    send_file(BytesIO(data.encode('utf-8')), mimetype='text/plain', as_attachment=False,
+                              download_name=name))
 
-        if target == 'clash':
-            data = clash_encode(subs)
-            response = make_response(
-                send_file(BytesIO(data.encode('utf-8')), mimetype='text/plain', as_attachment=False,
-                          download_name=name))
-
-            # 设置响应头
-            # response.headers['subscription-userinfo'] = 'total=22333829939200;remarks=123123'
-            return response
-        if target == 'v2ray':
-            data = []
-            for sub in subs:
-                proxy_type = sub.node.split('://')[0]  # 节点类型
-                proxy_test = sub.node  # 节点信息
-                if proxy_type == 'http' or proxy_type == 'https':
-                    url = proxy_test
-                    response = requests.get(url)
-                    text = decode_base64_if(response.text)
-                    proxy_test = text
-                data.append(proxy_test)
-            encoded_node = base64.b64encode('\n'.join(data).encode('utf-8')).decode('utf-8')
-            response = make_response(
-                send_file(BytesIO(encoded_node.encode('utf-8')), mimetype='text/html', as_attachment=False,
-                          download_name=f'{name}.txt'))
-            # response.headers['subscription-userinfo'] = 'remarks=22333829939200;'
-            return response
-        if target == 'surge':
-            interval = f'#!MANAGED-CONFIG {request.url} interval=86400 strict=false'  # 更新时间
-            data = interval + '\n' + surge_encode(subs)
-            response = make_response(
-                send_file(BytesIO(data.encode('utf-8')), mimetype='text/plain', as_attachment=False,
-                          download_name=name))
-            # response.headers['subscription-userinfo'] = 'remarks=22333829939200;'
-            return response
+                # 设置响应头
+                # response.headers['subscription-userinfo'] = 'total=22333829939200;remarks=123123'
+                sub_log.status = 'success'
+                session_commie()
+                return response
+            if target == 'v2ray':
+                data = []
+                for sub in subs:
+                    proxy_type = sub.node.split('://')[0]  # 节点类型
+                    proxy_test = sub.node  # 节点信息
+                    if proxy_type == 'http' or proxy_type == 'https':
+                        url = proxy_test
+                        response = requests.get(url)
+                        text = decode_base64_if(response.text)
+                        proxy_test = text
+                    data.append(proxy_test)
+                encoded_node = base64.b64encode('\n'.join(data).encode('utf-8')).decode('utf-8')
+                response = make_response(
+                    send_file(BytesIO(encoded_node.encode('utf-8')), mimetype='text/html', as_attachment=False,
+                              download_name=f'{name}.txt'))
+                # response.headers['subscription-userinfo'] = 'remarks=22333829939200;'
+                return response
+            if target == 'surge':
+                interval = f'#!MANAGED-CONFIG {request.url} interval=86400 strict=false'  # 更新时间
+                data = interval + '\n' + surge_encode(subs)
+                response = make_response(
+                    send_file(BytesIO(data.encode('utf-8')), mimetype='text/plain', as_attachment=False,
+                              download_name=name))
+                # response.headers['subscription-userinfo'] = 'remarks=22333829939200;'
+                return response
+        except Exception as e:
+            sub_log.status = 'error'
+            sub_log.error = str(e)
+            session_commie()
+            print(e)
+            return ""
 
 
 @blue.route('/clash_config', methods=['POST'])  # clash配置修改
