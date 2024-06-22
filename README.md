@@ -110,7 +110,13 @@ docker run --name sublink -p 8000:5000 \
 # 清空登录记录
 
 确保你的容器在运行的时候终端执行以下命令：
-    docker exec -it sublink bash -c "python init_login_log.py; exit"
+docker exec -it sublink bash -c "python init_login_log.py; exit"
 
 ## Stargazers over time
+
 [![Stargazers over time](https://starchart.cc/jaaksii/sublink.svg?variant=adaptive)](https://starchart.cc/jaaksii/sublink)
+
+# TODO
+
+1. [ ] 订阅记录
+2. [ ] 剩余流量
