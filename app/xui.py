@@ -1,10 +1,14 @@
-import requests
 import json
+
+import requests
+
+
 class Xui():
     def __init__(self):
         self.cookie = {}
         self.url = ''
-    def Login(self,username,password):
+
+    def Login(self, username, password):
         url = f'{self.url}/login'
         data = {
             'username': username,
@@ -25,12 +29,13 @@ class Xui():
             错误信息:{msg}
                   ''')
             return False
+
     def List(self):
         url = f'{self.url}/xui/inbound/list'
         headers = {
-            'Cookie':f'session={self.cookie}'
+            'Cookie': f'session={self.cookie}'
         }
-        response = requests.post(url=url,headers=headers)
+        response = requests.post(url=url, headers=headers)
         if response.status_code == 200:
             # text = json.loads(response_data.text)
             response_data = json.loads(response.text, strict=False)
@@ -47,8 +52,10 @@ class Xui():
                     'protocol': obj['protocol'],
                 }
                 print(data)
+
+
 xui = Xui()
 xui.url = 'http://127.0.0.1:12345'
-login = xui.Login('admin','admin')
+login = xui.Login('admin', 'admin')
 if login:
     xui.List()
